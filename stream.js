@@ -1,5 +1,5 @@
 const { KafkaStreams } = require("kafka-streams");
-const { kafkaHost, topic } = require("./config");
+const { kafkaHost, topic, streamsTopic } = require("./config");
 
 const factory = new KafkaStreams({
   noptions: {
@@ -11,10 +11,13 @@ const factory = new KafkaStreams({
 const kstream = factory.getKStream(topic);
 
 kstream
-  .map(msg => ({ key: msg.value.toString(), value: undefined }))
+  .map(msg => ({
+    key: JSON.parse(msg.value.toString()).message.slice(0, -1),
+    value: undefined
+  }))
   .countByKey("key", "count")
   .map(({ key, count }) => `${key} ${count}`)
-  .to("word-count-topic-lul");
+  .to(streamsTopic);
 
 kstream.start().then(
   () => {
